@@ -72,18 +72,18 @@ alias lesss=less
 alias les=less
 
 {
-    if type pacman && type pacaur; then
+    if type pacman && type pacaur && ! alias pacman; then
         compdef _pacaur pacman
         compdef _pacaur_all_packages pacinfo
         _pacman # for _packman_all_packages
         _pacaur
         if test $UID -eq 0; then
             umask 0002
-            alias pacman='sudo -nHu sthalik pacaur'
+            alias pacman='sudo -nHu sthalik pacaur --color=always'
             alias pacaur=pacman
         else
             umask 0077
-            alias pacman=pacaur
+            alias pacman='pacaur --color=always'
         fi
     fi
 
@@ -118,7 +118,7 @@ alias les=less
 
 case "$OSTYPE" in
 linux*)
-    alias ls=ls\ --color=always
+    alias ls=ls\ --color=always -A
     alias gdb="gdb -q"
 
     ;;
