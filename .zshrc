@@ -113,6 +113,11 @@ alias les=less
         compdef _aptitude aptitude
         compdef _aptitude a
     fi
+    if type systemctl; then
+        if ! $UID -eq 0; then
+            alias systemctl='sudo -n systemctl'
+        fi
+    fi
 
 } >/dev/null 2>&1 </dev/null
 
