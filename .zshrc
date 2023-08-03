@@ -125,7 +125,6 @@ case "$OSTYPE" in
 linux*)
     alias ls=ls\ --color=always -A
     alias gdb="gdb -q"
-
     ;;
 freebsd*)
     function top() {
@@ -143,6 +142,9 @@ freebsd*)
     {
         PAGER=cat command mergemaster -FviCP "$@"
     }
+
+    alias ln='ln -wh'
+
     if which gnuls >/dev/null; then
         alias ls=gnuls\ --color=always\ -A
     else
