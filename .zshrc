@@ -15,7 +15,7 @@ __prompt_hostname_cmd=""
 __prompt_hostname_color=""
 
 make_hostname_string() {
-    if test ".$SSH_CLIENT" != "."; then
+    if true || test ".$SSH_CLIENT" != "."; then
         __prompt_hostname_cmd="%m "
         __prompt_hostname_color="%U%m%u "
     fi
@@ -324,8 +324,15 @@ git_prompt_string() {
   unset _RPROMPT_GIT_STATE
 }
 
+if test $UID -eq 0; then
+    umask 022
+else
+    umask 027
+fi
+
 case "$OS,$OSTYPE" in
     Windows_NT,msys)
+        umask 022
         compdef -d start
         compdef _nice msvc
         compdef _nice msvc64
