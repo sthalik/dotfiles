@@ -1,4 +1,5 @@
 let skip_defaults_vim=1
+let g:netrw_dirhistmax=0
 
 set t_Co=256
 
