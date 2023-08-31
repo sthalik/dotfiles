@@ -114,7 +114,7 @@ alias les=less
         compdef _aptitude a
     fi
     if type systemctl; then
-        if ! $UID -eq 0; then
+        if test $UID -ne 0; then
             alias systemctl='sudo -n systemctl'
         fi
     fi
@@ -366,7 +366,7 @@ case "$OS,$OSTYPE" in
                 sw="/d"
             fi
             src="$(cygpath -w -- "$src")"
-            dest="$(cygpath -w -- "$(realpath -- "$dest")")"
+            dest="$(cygpath -w -- "${dest:a}")"
             mklink.bat $sw $dest $src
             )
         }
