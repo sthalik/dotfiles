@@ -403,7 +403,7 @@ bindkey \^P _popd-widget
 
 if which systemctl &>/dev/null; then
     alias sc=systemctl
-    compdef _systemctl sc
+    compdef sc=systemctl
 else
     compdef _service service
 fi
