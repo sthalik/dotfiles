@@ -137,7 +137,7 @@ freebsd*)
     }
     function iotop()
     {
-        top -HaStPmio -ototal -s1 "$@"
+        top -HaStPmio -ototal -s3 "$@"
     }
     function mmsodrunk()
     {
