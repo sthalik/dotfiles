@@ -2,7 +2,7 @@ if test -z "$_comp_dumpfile"; then
     autoload -Uz compinit && compinit
 fi
 autoload -Uz colors && colors
-zmodload zsh/stat && alias stat='builtin stat -ostnr'
+zmodload zsh/stat &>/dev/null && alias stat='builtin stat -ostnr'
 
 export EDITOR=vim LESS='-FRX' SYSTEMD_LESS='-FRXK' PAGER=less LESSCHARSET=utf-8
 
@@ -431,6 +431,7 @@ if which git &>/dev/null; then
     alias grc='git rebase --continue'
     alias gra='git rebase --abort'
     type git-dag &>/dev/null && alias gd='git dag'
+    type python &>/dev/null && alias pythom=python
 fi
 
 # eof
