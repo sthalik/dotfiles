@@ -413,6 +413,7 @@ if which highlight &>/dev/null; then
     highlight() {
         command highlight -O ansi "$@" </dev/null | less
     }
+    alias hl=highlight
 fi
 
 if which git &>/dev/null; then
