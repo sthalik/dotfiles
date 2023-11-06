@@ -1,3 +1,5 @@
+#!/bin/false
+
 if test -z "$_comp_dumpfile"; then
     autoload -Uz compinit && compinit
 fi
@@ -433,6 +435,10 @@ if which git &>/dev/null; then
     alias gra='git rebase --abort'
     type git-dag &>/dev/null && alias gd='git dag'
     type python &>/dev/null && alias pythom=python
+fi
+
+if which git &>/dev/null; then
+    alias axel='axel -c --user-agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36"'
 fi
 
 # eof
