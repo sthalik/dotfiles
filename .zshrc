@@ -70,6 +70,8 @@ alias egrep='egrep --color'
 alias fgrep='fgrep --color'
 alias ls='ls --color=auto -A'
 alias sl=ls
+alias ccd=cd
+alias cdd=cd
 alias hahs=hash
 alias lesss=less
 alias les=less
@@ -153,6 +155,7 @@ freebsd*)
     else
         alias ls=ls --color\ -A
     fi
+    alias iotop='top -aStPs3 -m io -o total 10'
     ;;
 darwin*)
     if which gnuls >/dev/null; then
@@ -433,6 +436,7 @@ if which git &>/dev/null; then
     alias gl='git log'
     alias grc='git rebase --continue'
     alias gra='git rebase --abort'
+    alias gb='git switch'
     type git-dag &>/dev/null && alias gd='git dag'
     type python &>/dev/null && alias pythom=python
 fi
