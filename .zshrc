@@ -14,18 +14,9 @@ fi
 
 case "$TERM" in *256color) export COLORTERM=24bit;; esac
 
-__prompt_hostname_cmd=""
-__prompt_hostname_color=""
-
-make_hostname_string() {
-    if true || test ".$SSH_CLIENT" != "."; then
-        __prompt_hostname_cmd="%m "
-        __prompt_hostname_color="%U%m%u "
-    fi
-}
-
-make_hostname_string
-prompt="%(?..<%{$fg[cyan]%}%?%{$reset_color%}> )${__prompt_hostname_color}%(1j.%{$fg_bold[yellow]%}%j%{$reset_color%} .)%3d %B%#%b "
+__prompt_hostname_cmd="%m "
+__prompt_hostname_color="%U%m%u "
+prompt="%(?..<%{$fg[cyan]%}%?%{$reset_color%}> )%{$reset_color$fg_bold[default]%}${__prompt_prefix}%{$reset_color%}${__prompt_hostname_color}%(1j.%{$fg_bold[yellow]%}%j%{$reset_color%} .)%3d %B%#%b "
 
 setopt re_match_pcre
 
