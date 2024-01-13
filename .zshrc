@@ -81,6 +81,7 @@ alias les=less
             umask 0077
             alias pacman='pacaur --color=always'
         fi
+        test -z "$DEBUGINFOD_URLS" && export DEBUGINFOD_URLS="https://debuginfod.archlinux.org"
     fi
 
     if type apt; then
