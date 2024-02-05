@@ -66,7 +66,10 @@ alias cdd=cd
 alias hahs=hash
 alias lesss=less
 alias les=less
-alias beep="printf \\a"
+
+if ! command -v beep &>/dev/null; then
+    beep() { local last=$?; printf \\a; return $last; }
+fi
 
 {
     if type pacman && type pacaur && ! alias pacman; then
