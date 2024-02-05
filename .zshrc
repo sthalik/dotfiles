@@ -66,6 +66,7 @@ alias cdd=cd
 alias hahs=hash
 alias lesss=less
 alias les=less
+alias beep="printf \\a"
 
 {
     if type pacman && type pacaur && ! alias pacman; then
@@ -336,6 +337,8 @@ case "$OS,$OSTYPE" in
         compdef -d start
         compdef _nice msvc
         compdef _nice msvc64
+        compdef _nice clang64
+        compdef _nice mingw64
         killall() {
             local param='' i=0 ret=0
             case "$1" in
