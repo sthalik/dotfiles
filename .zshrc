@@ -308,24 +308,25 @@ parse_git_state() {
 }
 
 git_prompt_string() {
-  if test -e "./.git" -o -e "./.git/index" -o -e "../.git/index" -o -e "../../.git/index" -o -e "../../../.git/index"
-  local dir=""
-  local nc="$GIT_PROMPT_NOCOLOR"
-  for dir in "./.git" "../.git" "../../.git" "../../../.git" "../../../../.git"; do
-    local git_where=""
-    #test -f "$dir/index" -o -f "$dir/refs" || continue
+  if test -e "./.git" -o -e "./.git/index" -o -e "../.git/index" -o -e "../../.git/index" -o -e "../../../.git/index"; then
+    local dir=""
+    local nc="$GIT_PROMPT_NOCOLOR"
+    for dir in "./.git" "../.git" "../../.git" "../../../.git" "../../../../.git"; do
+      local git_where=""
+      #test -f "$dir/index" -o -f "$dir/refs" || continue
 
-    # Show Git branch/tag, or name-rev if on detached head
-    { git symbolic-ref -q HEAD || git name-rev --name-only --no-undefined --always HEAD; } 2>/dev/null | read git_where
+      # Show Git branch/tag, or name-rev if on detached head
+      { git symbolic-ref -q HEAD || git name-rev --name-only --no-undefined --always HEAD; } 2>/dev/null | read git_where
 
-    test -n "$git_where" || continue
+      test -n "$git_where" || continue
 
-    parse_git_state
-    git_where="%{$fg[cyan]%}${git_where#(refs/heads/|tags/)}$nc"
+      parse_git_state
+      git_where="%{$fg[cyan]%}${git_where#(refs/heads/|tags/)}$nc"
 
-    RPS1="$_RPROMPT_GIT_STATE$nc$GIT_PROMPT_PREFIX$git_where$GIT_PROMPT_SUFFIX$nc"
-    break
-  done
+      RPS1="$_RPROMPT_GIT_STATE$nc$GIT_PROMPT_PREFIX$git_where$GIT_PROMPT_SUFFIX$nc"
+      break
+    done
+  fi
   unset _RPROMPT_GIT_STATE
 }
 
@@ -446,5 +447,4 @@ if which git &>/dev/null; then
     alias axel='axel -c --user-agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36"'
 fi
 
-# eof
-
+# vim: et shiftwidth=2 softtabstop=2 tabstop=8 shortmess=atI
