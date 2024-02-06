@@ -68,7 +68,8 @@ alias lesss=less
 alias les=less
 
 if ! command -v beep &>/dev/null; then
-    beep() { local last=$?; printf \\a; return $last; }
+    __beep() { local last=$?; printf \\a; return $last; }
+    alias beep=__beep
 fi
 
 {
