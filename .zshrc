@@ -68,7 +68,7 @@ alias lesss=less
 alias les=less
 
 if ! command -v beep &>/dev/null; then
-    __beep() { local last=$?; printf \\a; return $last; }
+    __beep() { local last=$?; printf \\a; sleep 0.125; return $last; }
     alias beep=__beep
 fi
 
@@ -439,6 +439,8 @@ if which git &>/dev/null; then
     alias grc='git rebase --continue'
     alias gra='git rebase --abort'
     alias gb='git switch'
+    alias gcps='git cherry-pick --skip'
+    alias gcpa='git cherry-pick --abort'
     type git-dag &>/dev/null && alias gd='git dag'
     type python &>/dev/null && alias pythom=python
 fi
