@@ -438,7 +438,6 @@ if which git &>/dev/null; then
     alias gl='git log'
     alias grc='git rebase --continue'
     alias gra='git rebase --abort'
-    alias gb='git switch'
     alias gcps='git cherry-pick --skip'
     alias gcpa='git cherry-pick --abort'
     alias gcp='git cherry-pick'
