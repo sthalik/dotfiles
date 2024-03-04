@@ -441,7 +441,7 @@ if which git &>/dev/null; then
     alias gcps='git cherry-pick --skip'
     alias gcpa='git cherry-pick --abort'
     alias gcp='git cherry-pick'
-    type git-dag &>/dev/null && alias gd='git dag'
+    alias gd='git diff -w --word-diff'
     type python &>/dev/null && alias pythom=python
 fi
 
