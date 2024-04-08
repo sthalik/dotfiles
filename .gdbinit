@@ -2,10 +2,10 @@
 
 set confirm on
 set breakpoint pending on
+set disassembly-flavor intel
 alias line = info line *$rip
 alias btall = backtrace -full -frame-arguments all
-
-# 
+alias cls = shell clear
 
 # ----------------------
 
@@ -24,6 +24,8 @@ b std::quick_exit
 b std::terminate
 b raise
 b kill
+
+# !!! todo skip
 
 set logging file gdb.txt
 set logging overwrite off
