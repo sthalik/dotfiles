@@ -1,0 +1,116 @@
+[cola]
+	spellcheck = false
+	fontdiff = Fira Code,7,-1,5,50,0,0,0,0,0
+	textwidth = 72
+	blameviewer = git gui blame
+	tabwidth = 8
+	expandtab = true
+	statusshowtotals = true
+	statusindent = true
+	hidpi = 1.25
+	safemode = false
+	theme = default
+	icontheme = default
+	inotify = false
+	refreshonfocus = true
+[user]
+	name = Stanislaw Halik
+	email = sthalik@example.invalid
+[rebase]
+	autoStash = true
+	autoSquash = true
+	missingCommitsCheck = error
+	updateRefs = true
+[pull]
+	rebase = merges
+	ff = yes
+[pack]
+	threads = 0
+[push]
+#	default = upstream
+	default = simple
+	recurseSubmodules = check
+	useForceIfIncludes = true
+	#negotiate = true
+[merge]
+	conflictStyle = zdiff3
+	verbosity = 3
+[diff]
+	algorithm = histogram
+	noprefix = true
+	#ignoreSubmodules = all
+	renames = copies
+	colorMoved = plain
+	colorMovedWS = allow-indentation-change
+	tool = xxdiff
+[core]
+	fileMode = false
+	ignoreCase = false
+	untrackedCache = true
+	fscache = true
+	eol = lf
+	symlinks = true # XXX set to false? -sh 20181228
+	#preferSymlinkRefs = true # comment out?
+	logAllRefUpdates = true
+	pager = /usr/bin/env LESS=FRX /usr/bin/less
+	autocrlf = false
+	safecrlf = true
+[color]
+	ui = true
+	interactive = always
+	advice = auto
+[column]
+	ui = dense,row
+	branch = auto
+	tag = auto
+[fetch]
+	recurseSubmodules = true
+	all = true
+[gui]
+	editor = c:/progra~1/notepad++/notepad++.exe
+	displayuntracked = true
+[receive]
+	denyCurrentBranch = ignore
+[status]
+	showStash = true
+[remote "origin"]
+	shallow = true
+[credential]
+	helper = store
+[submodule]
+	fetchJobs = 4
+[log]
+	abbrevCommit = true
+	showRoot = true
+	showSignature = false
+[alias]
+[gc]
+	reflogExpire = never
+	reflogExpireUnreachable = never
+	worktreePruneExpire = never
+	pruneexpire = never
+[rerere]
+	#autoUpdate = true
+	enabled = false
+[init]
+	defaultBranch = master
+[help]
+	autocorrect = immediate
+[credential "https://gitlab.com"]
+	provider = generic
+[advice]
+	skippedCherryPicks = true
+[blame]
+	coloring = repeatedLines
+[branch]
+	autosetuprebase = always
+[protocol]
+	version = 2
+[filter "lfs"]
+	clean = git-lfs clean -- %f
+	smudge = git-lfs smudge -- %f
+	process = git-lfs filter-process
+	required = false
+[index]
+	version = 4
+# vim: noet nolist ts=4
