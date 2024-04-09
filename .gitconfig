@@ -64,7 +64,7 @@
 	branch = auto
 	tag = auto
 [fetch]
-	recurseSubmodules = true
+	recurseSubmodules = on-demand
 	all = true
 [gui]
 	editor = c:/progra~1/notepad++/notepad++.exe
