@@ -67,10 +67,36 @@ alias hahs=hash
 alias lesss=less
 alias les=less
 
+zmodload zsh/zselect
+
+__beep() {
+    local last=$?
+    printf \\a;
+    zselect -t 12
+    return $last;
+}
+
 if ! command -v beep &>/dev/null; then
-    __beep() { local last=$?; printf \\a; sleep 0.125; return $last; }
     alias beep=__beep
 fi
+
+__b() {
+    local last=$? i
+    for i in {1.."$1"}; do
+        beep
+    done
+    return $last
+}
+
+b() {
+    local last=$?
+    if test $# -gt 0; then
+        __b "$1"
+    else
+        __b 7
+    fi
+    return $last
+}
 
 {
     if type pacman && type pacaur && ! alias pacman; then
@@ -449,4 +475,4 @@ if which git &>/dev/null; then
     alias axel='axel -c --user-agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36"'
 fi
 
-# vim: et shiftwidth=2 softtabstop=2 tabstop=8 shortmess=atI
+# vim: et shiftwidth=4 softtabstop=4 tabstop=8 shortmess=atI
