@@ -100,6 +100,11 @@ b() {
 
 {
     if type pacman && type pacaur && ! alias pacman; then
+        alias pacmna=pacman
+        alias pacmam=pacman
+        alias pacma=pacman
+        alias pacm=pacman
+        alias pacmam=pacman
         compdef _pacaur pacman
         compdef _pacaur_all_packages pacinfo
         _pacman # for _packman_all_packages
@@ -472,7 +477,7 @@ if which git &>/dev/null; then
     type python &>/dev/null && alias pythom=python
 fi
 
-if which git &>/dev/null; then
+if which axel &>/dev/null; then
     alias axel='axel -c --user-agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36"'
 fi
 
