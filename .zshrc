@@ -468,6 +468,7 @@ if which git &>/dev/null; then
     alias gcpa='git cherry-pick --abort'
     alias gcp='git cherry-pick'
     alias gd='git diff -w --word-diff'
+    alias gbc='git branch --contains'
     type python &>/dev/null && alias pythom=python
 fi
 

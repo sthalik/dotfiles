@@ -13,6 +13,7 @@
 	icontheme = default
 	inotify = false
 	refreshonfocus = true
+	sync = false
 [user]
 	name = Stanislaw Halik
 	email = sthalik@example.invalid

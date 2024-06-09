@@ -3,6 +3,7 @@
 set confirm on
 set breakpoint pending on
 set disassembly-flavor intel
+set index-cache enabled
 alias line = info line *$rip
 alias btall = backtrace -full -frame-arguments all
 alias cls = shell clear
