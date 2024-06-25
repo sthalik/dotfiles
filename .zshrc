@@ -481,4 +481,9 @@ if which axel &>/dev/null; then
     alias axel='axel -c --user-agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36"'
 fi
 
+if which meson &>/dev/null; then
+    autoload -U _meson
+    compdef _meson meson
+fi
+
 # vim: et shiftwidth=4 softtabstop=4 tabstop=8 shortmess=atI
