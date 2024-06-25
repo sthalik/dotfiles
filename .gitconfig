@@ -1,22 +1,6 @@
-[cola]
-	spellcheck = false
-	fontdiff = Fira Code,7,-1,5,50,0,0,0,0,0
-	textwidth = 72
-	blameviewer = git gui blame
-	tabwidth = 8
-	expandtab = true
-	statusshowtotals = true
-	statusindent = true
-	hidpi = 1.25
-	safemode = false
-	theme = default
-	icontheme = default
-	inotify = false
-	refreshonfocus = true
-	sync = false
 [user]
-	name = Stanislaw Halik
-	email = sthalik@example.invalid
+	name = user
+	email = user@example.invalid
 [rebase]
 	autoStash = true
 	autoSquash = true
@@ -67,17 +51,10 @@
 [fetch]
 	recurseSubmodules = on-demand
 	all = true
-[gui]
-	editor = c:/progra~1/notepad++/notepad++.exe
-	displayuntracked = true
 [receive]
 	denyCurrentBranch = ignore
 [status]
 	showStash = true
-[remote "origin"]
-	shallow = true
-[credential]
-	helper = store
 [submodule]
 	fetchJobs = 4
 [log]
@@ -97,8 +74,6 @@
 	defaultBranch = master
 [help]
 	autocorrect = immediate
-[credential "https://gitlab.com"]
-	provider = generic
 [advice]
 	skippedCherryPicks = true
 [blame]
@@ -107,11 +82,6 @@
 	autosetuprebase = always
 [protocol]
 	version = 2
-[filter "lfs"]
-	clean = git-lfs clean -- %f
-	smudge = git-lfs smudge -- %f
-	process = git-lfs filter-process
-	required = false
 [index]
 	version = 4
 # vim: noet nolist ts=4
