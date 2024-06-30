@@ -67,6 +67,8 @@ alias hahs=hash
 alias lesss=less
 alias les=less
 
+type realpath &>/dev/null && alias relapath=realpath
+
 zmodload zsh/zselect
 
 __beep() {
