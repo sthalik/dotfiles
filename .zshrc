@@ -488,4 +488,8 @@ if which meson &>/dev/null; then
     compdef _meson meson
 fi
 
+if which realpath &>/dev/null; then
+    alias realpath.=realpath\ .
+fi
+
 # vim: et shiftwidth=4 softtabstop=4 tabstop=8 shortmess=atI
