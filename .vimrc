@@ -17,6 +17,7 @@ set nocindent noincsearch
 set listchars=trail:!
 
 set matchpairs+=<:>
+set iskeyword+=:
 
 filetype indent on
 filetype indent plugin on
