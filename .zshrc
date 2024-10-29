@@ -14,6 +14,8 @@ fi
 
 case "$TERM" in *256color) export COLORTERM=24bit;; esac
 
+export CMAKE_COLOR_DIAGNOSTICS=1
+
 __prompt_hostname_cmd="%m "
 __prompt_hostname_color="%U%m%u "
 prompt="%(?..<%{$fg[cyan]%}%?%{$reset_color%}> )%{$reset_color$fg_bold[default]%}${__prompt_prefix}%{$reset_color%}${__prompt_hostname_color}%(1j.%{$fg_bold[yellow]%}%j%{$reset_color%} .)%3d %B%#%b "
@@ -338,8 +340,16 @@ parse_git_state() {
 }
 
 git_prompt_string() {
-  if test -e "./.git" -o -e "./.git/index" -o -e "../.git/index" -o -e "../../.git/index" -o -e "../../../.git/index"; then
-    local dir=""
+  local dir=".git" i found=0
+  for i in {1..10}; do
+      if test -e "$dir"; then
+          found=1
+          break
+      fi
+      dir="../$dir"
+  done
+
+  if test $found -eq 1; then
     local nc="$GIT_PROMPT_NOCOLOR"
     for dir in "./.git" "../.git" "../../.git" "../../../.git" "../../../../.git"; do
       local git_where=""
