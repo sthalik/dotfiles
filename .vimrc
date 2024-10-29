@@ -9,15 +9,16 @@ set t_Co=16777216
 set nocompatible ai scs ic showcmd wildmenu
 set et smarttab shiftwidth=4 softtabstop=4 tabstop=8 nohls shortmess=atI
 set splitbelow splitright
-set modeline nosecure exrc virtualedit=onemore
+set modeline nosecure virtualedit=onemore
 set nocindent noincsearch
+"set exrc
 
 "set list
 "set listchars=tab:>-,trail:!
 set listchars=trail:!
 
 set matchpairs+=<:>
-set iskeyword+=:
+"set iskeyword+=:
 
 filetype indent on
 filetype indent plugin on
