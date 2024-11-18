@@ -68,6 +68,7 @@ alias cdd=cd
 alias hahs=hash
 alias lesss=less
 alias les=less
+alias camke=cmake
 
 type realpath &>/dev/null && alias relapath=realpath
 
