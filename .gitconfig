@@ -40,6 +40,7 @@
 	pager = /usr/bin/env LESS=FRX /usr/bin/less
 	autocrlf = false
 	safecrlf = true
+	multiPackIndex = true
 [color]
 	ui = true
 	interactive = always
@@ -55,6 +56,9 @@
 	denyCurrentBranch = ignore
 [status]
 	showStash = true
+[credential]
+	helper = store
+	provider = generic
 [submodule]
 	fetchJobs = 4
 [log]
@@ -82,6 +86,11 @@
 	autosetuprebase = always
 [protocol]
 	version = 2
+[filter "lfs"]
+	clean = git-lfs clean -- %f
+	smudge = git-lfs smudge -- %f
+	process = git-lfs filter-process
+	required = true
 [index]
 	version = 4
 # vim: noet nolist ts=4
