@@ -1,5 +1,3 @@
-#!/bin/false
-
 if test -z "$_comp_dumpfile"; then
     autoload -Uz compinit && compinit
 fi
@@ -81,7 +79,7 @@ __beep() {
     return $last;
 }
 
-if ! command -v beep &>/dev/null; then
+if ! which beep &>/dev/null; then
     alias beep=__beep
 fi
 
@@ -271,7 +269,8 @@ bindkey "^I"      expand-or-complete
 bindkey "^V"      quoted-insert
 bindkey "^X"      end-of-list
 
-WORDCHARS='*?.~;!#%^_-' # XXX
+WORDCHARS='*?.~;!#%^_-'
+setopt no_hist_expand # XXX
 
 # git prompt only
 
