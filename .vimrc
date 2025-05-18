@@ -38,12 +38,16 @@ set history=200
 set viminfo+=:5000
 set viminfo+=/500
 set switchbuf=useopen
-set noswapfile
+"set noswapfile
+set swapfile
+
 "set viminfo=""
 "set dir=~/.vim-tmp/swapfiles
 "set backupdir=~/.vim-tmp/backupdir
 set fileformat=unix
-set nobackup
+"set nobackup
+"set backup
+"set autowrite
 
 set guifont=Fira\ Code\ 9
 
