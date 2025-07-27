@@ -45,7 +45,7 @@ set swapfile
 "set dir=~/.vim-tmp/swapfiles
 "set backupdir=~/.vim-tmp/backupdir
 set fileformat=unix
-"set nobackup
+set nobackup
 "set backup
 "set autowrite
 

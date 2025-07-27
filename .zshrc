@@ -67,6 +67,7 @@ alias hahs=hash
 alias lesss=less
 alias les=less
 alias camke=cmake
+alias tocuh=touch
 
 type realpath &>/dev/null && alias relapath=realpath
 
@@ -270,7 +271,7 @@ bindkey "^V"      quoted-insert
 bindkey "^X"      end-of-list
 
 WORDCHARS='*?.~;!#%^_-'
-setopt no_hist_expand # XXX
+#setopt no_hist_expand # XXX
 
 # git prompt only
 
@@ -373,7 +374,8 @@ git_prompt_string() {
 if test $UID -eq 0; then
     umask 022
 else
-    umask 027
+    #umask 027
+    umask 022
 fi
 
 case "$OS,$OSTYPE" in
@@ -487,7 +489,8 @@ if which git &>/dev/null; then
     alias gcp='git cherry-pick'
     alias gd='git diff -w --word-diff'
     alias gbc='git branch --contains'
-    type python &>/dev/null && alias pythom=python
+    alias gsui='git submodule update --init'
+    #type python &>/dev/null && alias pythom=python
 fi
 
 if which axel &>/dev/null; then
