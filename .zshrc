@@ -461,6 +461,10 @@ if which systemctl &>/dev/null; then
 else
     compdef _service service
 fi
+if which service &>/dev/null; then
+    alias sv=service
+    compdef _service sv
+fi
 
 if which highlight &>/dev/null; then
     highlight() {
@@ -489,7 +493,7 @@ if which git &>/dev/null; then
     alias gcp='git cherry-pick'
     alias gd='git diff -w --word-diff'
     alias gbc='git branch --contains'
-    alias gsui='git submodule update --init'
+    alias gsu='git submodule update --init --recursive'
     #type python &>/dev/null && alias pythom=python
 fi
 
