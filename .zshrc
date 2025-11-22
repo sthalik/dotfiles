@@ -7,7 +7,7 @@ zmodload zsh/stat &>/dev/null && alias stat='builtin stat -ostnr'
 export EDITOR=vim LESS='-FRX' SYSTEMD_LESS='-FRXK' PAGER=less LESSCHARSET=utf-8
 
 if test -z "$LC_ALL" && test -z "$LC_TIME"; then
-    export LC_ALL=en_US.UTF-8
+    export LC_ALL=C.UTF-8
 fi
 
 case "$TERM" in *256color) export COLORTERM=24bit;; esac
