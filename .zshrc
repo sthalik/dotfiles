@@ -73,25 +73,12 @@ type realpath &>/dev/null && alias relapath=realpath
 
 zmodload zsh/zselect
 
-__beep() {
-    local last=$?
-    printf \\a;
-    zselect -t 12
-    return $last;
-}
-
-if ! which beep &>/dev/null; then
-    alias beep=__beep
-fi
-
 __b() {
-    local last=$? i
     for i in {1.."$1"}; do
-        beep
+        printf \\a;
+        zselect -t 12
     done
-    return $last
 }
-
 b() {
     local last=$?
     if test $# -gt 0; then
