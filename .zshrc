@@ -365,8 +365,8 @@ else
     umask 022
 fi
 
-case "$OS,$OSTYPE" in
-    Windows_NT,msys)
+case "$OS" in
+    Windows_NT)
         umask 022
         compdef -d start
         compdef _nice msvc
@@ -389,25 +389,7 @@ case "$OS,$OSTYPE" in
             done
             return $ret
         }
-#        mklink() {
-#            ( set -e
-#            local src="$1" dest="$2" local sw=""
-#            if test $# -ne 2 || test -z "$src" || test -z "$dest"; then
-#                echo "usage: mklink src dest" >&2
-#                return 64
-#            fi
-#            if test -d "$dest" && ! test -d "$src"; then
-#                dest="$dest/$(basename -- "$src")"
-#            fi
-#            if test -d "$src"; then
-#                sw="/d"
-#            fi
-#            src="$(cygpath -w -- "$src")"
-#            dest="$(cygpath -w -- "${dest:a}")"
-#            mklink.bat $sw $dest $src
-#            )
-#        }
-        zstyle ':completion:*:-command-:*' ignored-patterns '*.dll'
+        zstyle ':completion:*:*:*:*:commands' ignored-patterns '*.(exe|dll)'
         alias ls=ls\ --color=always -A
         alias gdb="gdb -q"
         alias find='find -O3'
@@ -445,19 +427,10 @@ bindkey \^P _popd-widget
 if which systemctl &>/dev/null; then
     alias sc=systemctl
     compdef sc=systemctl
-else
-    compdef _service service
 fi
 if which service &>/dev/null; then
     alias sv=service
     compdef _service sv
-fi
-
-if which highlight &>/dev/null; then
-    highlight() {
-        command highlight -O ansi "$@" </dev/null | less
-    }
-    alias hl=highlight
 fi
 
 if which git &>/dev/null; then
