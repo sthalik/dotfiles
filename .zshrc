@@ -373,22 +373,24 @@ case "$OS" in
         compdef _nice msvc64
         compdef _nice clang64
         compdef _nice mingw64
-        killall() {
-            local param='' i=0 ret=0
-            case "$1" in
-                -9) shift; param='-f' ;;
-                -15) shift; param='' ;;
-                -*) echo "killall: unknown signal '$1'" >&2; return 64 ;;
-            esac
-            for i in "$@"; do
-                case "$i" in
-                    *.*) ;;
-                    *) i="$i.exe" ;;
+        if ! which killall &>/dev/null; then
+            killall() {
+                local param='' i=0 ret=0
+                case "$1" in
+                    -9) shift; param='-f' ;;
+                    -15) shift; param='' ;;
+                    -*) echo "killall: unknown signal '$1'" >&2; return 64 ;;
                 esac
-                taskkill $param -im "$i" || ret=1
-            done
-            return $ret
-        }
+                for i in "$@"; do
+                    case "$i" in
+                        *.*) ;;
+                        *) i="$i.exe" ;;
+                    esac
+                    taskkill $param -im "$i" || ret=1
+                done
+                return $ret
+            }
+        fi
         zstyle ':completion:*:*:*:*:commands' ignored-patterns '*.(exe|dll)'
         alias ls=ls\ --color=always -A
         alias gdb="gdb -q"
@@ -464,6 +466,13 @@ fi
 if which meson &>/dev/null; then
     autoload -U _meson
     compdef _meson meson
+fi
+
+if which ugrep &>/dev/null; then
+    alias grep='ugrep -G'
+    alias egrep='ugrep -E'
+    alias fgrep='ugrep -F'
+    alias zgrep='ugrep -z'
 fi
 
 # vim: et shiftwidth=4 softtabstop=4 tabstop=8 shortmess=atI
