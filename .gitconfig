@@ -58,6 +58,7 @@
 [status]
 	showStash = true
 [credential]
+	helper =
 	helper = store
 	provider = generic
 [submodule]
