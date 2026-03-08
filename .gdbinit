@@ -28,6 +28,8 @@ b kill
 
 # !!! todo skip
 
+set print object on
+
 set logging file gdb.txt
 set logging overwrite off
 set logging redirect off

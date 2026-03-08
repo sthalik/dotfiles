@@ -1,0 +1,2 @@
+\e[1~ goto-line
+\e[4~ goto-end

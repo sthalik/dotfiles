@@ -115,22 +115,31 @@ b() {
 
     if type apt; then
         function aptitude() {
+            zmodload zsh/datetime
+            zmodload zsh/stat
+
             if test $# -eq 0; then
                 command aptitude --help </dev/null
             else
                 local up=0 pu="--purge-unused" a=""
-                for k in "$@"; do
-                    case "$k" in
-                        purge) a="-D"; break ;;
-                        *upgrade|*install|download|changelog) up=1; break ;;
-                        #download|changelog|*'source'*|*src*) pu=""; up=0; break ;;
-                        #[a-z][a-z]*) pu=""; up=0; break ;;
-                        -*) ;;
-                        *) pu=""; break ;;
-                    esac
-                done
+#                for k in "$@"; do
+#                    case "$k" in
+#                        purge) a="-D"; break ;;
+#                        *upgrade|*install|download|changelog) up=1; break ;;
+#                        #download|changelog|*'source'*|*src*) pu=""; up=0; break ;;
+#                        #[a-z][a-z]*) pu=""; up=0; break ;;
+#                        -*) ;;
+#                        *) pu=""; break ;;
+#                    esac
+#                done
+                up=1 # test
                 if test $up -eq 1; then
-                    command aptitude -q=1 update || return $?
+                    local mtime=0
+                    zstat -H info ~/.aptitude-update.stamp 2>/dev/null && mtime=$info[mtime]
+                    if (( $mtime < $EPOCHSECONDS - 3600 )); then
+                        command aptitude -q=1 update || return $?
+                        :> ~/.aptitude-update.stamp
+                    fi
                 fi
                 command aptitude $pu $a "$@"
             fi
@@ -146,6 +155,21 @@ b() {
     fi
 
 } >/dev/null 2>&1 </dev/null
+
+case "$OSTYPE" in
+    Windows_NT)
+        umask 022
+        compdef -d start
+        compdef _nice msvc
+        compdef _nice msvc64
+        compdef _nice clang64
+        compdef _nice mingw64
+        zstyle ':completion:*:-command-:*' ignored-patterns '*.dll'
+        alias ls=ls\ --color=always -A
+        alias gdb="gdb -q"
+        alias find='find -O3'
+    ;;
+esac
 
 case "$OSTYPE" in
 linux*)
@@ -339,7 +363,7 @@ git_prompt_string() {
 
   if test $found -eq 1; then
     local nc="$GIT_PROMPT_NOCOLOR"
-    for dir in "./.git" "../.git" "../../.git" "../../../.git" "../../../../.git"; do
+    #for dir in "./.git" "../.git" "../../.git" "../../../.git" "../../../../.git"; do
       local git_where=""
       #test -f "$dir/index" -o -f "$dir/refs" || continue
 
@@ -352,8 +376,8 @@ git_prompt_string() {
       git_where="%{$fg[cyan]%}${git_where#(refs/heads/|tags/)}$nc"
 
       RPS1="$_RPROMPT_GIT_STATE$nc$GIT_PROMPT_PREFIX$git_where$GIT_PROMPT_SUFFIX$nc"
-      break
-    done
+      #break
+    #done
   fi
   unset _RPROMPT_GIT_STATE
 }
@@ -368,7 +392,8 @@ fi
 case "$OS" in
     Windows_NT)
         umask 022
-        compdef -d start
+        #compdef -d start
+        compdef _nice start
         compdef _nice msvc
         compdef _nice msvc64
         compdef _nice clang64
@@ -432,7 +457,7 @@ if which systemctl &>/dev/null; then
 fi
 if which service &>/dev/null; then
     alias sv=service
-    compdef _service sv
+    compdef sv=_service service=_service
 fi
 
 if which git &>/dev/null; then
@@ -468,11 +493,8 @@ if which meson &>/dev/null; then
     compdef _meson meson
 fi
 
-if which ugrep &>/dev/null; then
-    alias grep='ugrep -G'
-    alias egrep='ugrep -E'
-    alias fgrep='ugrep -F'
-    alias zgrep='ugrep -z'
+if which rg &>/dev/null; then
+    compdef rg=_rg
 fi
 
 # vim: et shiftwidth=4 softtabstop=4 tabstop=8 shortmess=atI
