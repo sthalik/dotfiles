@@ -49,6 +49,10 @@ set nobackup
 "set backup
 "set autowrite
 
+set foldlevel=999999
+set diffopt+=context:2
+set diffopt+=linematch:200
+
 set guifont=Fira\ Code\ 9
 
 syntax on
@@ -64,11 +68,11 @@ command! Conflicts /^\(|||\|<<<\|>>>\)
 imap <F4> :Conficts<CR><CR>
 map <F4> :Conflicts<CR>
 
-function s:do_files()
-    bp!
-    bn!
-    file
-endfunction
+"function s:do_files()
+"    bp!
+"    bn!
+"    file
+"endfunction
 
 autocmd VimEnter,BufFilePost,FileReadPost,BufNewFile * silent! call s:do_files()
 
