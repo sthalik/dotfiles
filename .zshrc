@@ -121,31 +121,28 @@ b() {
             if test $# -eq 0; then
                 command aptitude --help </dev/null
             else
-                local up=0 pu="--purge-unused" a=""
-#                for k in "$@"; do
-#                    case "$k" in
-#                        purge) a="-D"; break ;;
-#                        *upgrade|*install|download|changelog) up=1; break ;;
-#                        #download|changelog|*'source'*|*src*) pu=""; up=0; break ;;
-#                        #[a-z][a-z]*) pu=""; up=0; break ;;
-#                        -*) ;;
-#                        *) pu=""; break ;;
-#                    esac
-#                done
-                up=1 # test
-                if test $up -eq 1; then
-                    local mtime=0
+                if (set -u
+                    while test $# -ne 0; do
+                        case "$1" in
+                        -*); shift ;;
+                        update) return 1 ;;
+                        *) return 0 ;;
+                        esac
+                        return 0
+                    done)
+                then
+                    local mtime=0 info
                     zstat -H info ~/.aptitude-update.stamp 2>/dev/null && mtime=$info[mtime]
                     if (( $mtime < $EPOCHSECONDS - 3600 )); then
                         command aptitude -q=1 update || return $?
                         :> ~/.aptitude-update.stamp
                     fi
                 fi
-                command aptitude $pu $a "$@"
+                command aptitude --purge-unused "$@"
             fi
         }
         alias a=aptitude
-        compdef _aptitude aptitude
+        compdef _aptitude=_aptitude
         compdef _aptitude a
     fi
     if type systemctl; then
@@ -307,9 +304,7 @@ GIT_PROMPT_MERGE="%{$fg_bold[default]%}STATE "
 parse_git_state() {
   local branch_pos=""
   local merge
-  local behind=0
-  local ahead=0
-  local line=""
+  local behind=0 ahead=0 line= xx
   local nc="$GIT_PROMPT_NOCOLOR"
   local pos=""
 
@@ -327,12 +322,16 @@ parse_git_state() {
     merge="${GIT_PROMPT_MERGE//STATE/$git_merge}$nc"
   fi
 
-  git rev-list --left-right @{u}... 2>/dev/null | while read line; do
-    case "$line" in
-        \>*) (( ahead += 1 )) ;;
-        \<*) (( behind += 1 )) ;;
-    esac
-  done
+  git rev-list --count --left-right @{u}... 2>/dev/null | read ahead behind xx
+  test -n "$ahead" || ahead=0
+  test -n "$behind" || behind=0
+
+#  git rev-list --left-right @{u}... 2>/dev/null | while read line; do
+#    case "$line" in
+#        \>*) (( ahead += 1 )) ;;
+#        \<*) (( behind += 1 )) ;;
+#    esac
+#  done
 
   if [ $ahead -gt 0 ]; then
     pos="${GIT_PROMPT_AHEAD//NUM/$ahead}"
@@ -394,28 +393,11 @@ case "$OS" in
         umask 022
         #compdef -d start
         compdef _nice start
+        compdef _nice vc
         compdef _nice msvc
         compdef _nice msvc64
         compdef _nice clang64
         compdef _nice mingw64
-        if ! which killall &>/dev/null; then
-            killall() {
-                local param='' i=0 ret=0
-                case "$1" in
-                    -9) shift; param='-f' ;;
-                    -15) shift; param='' ;;
-                    -*) echo "killall: unknown signal '$1'" >&2; return 64 ;;
-                esac
-                for i in "$@"; do
-                    case "$i" in
-                        *.*) ;;
-                        *) i="$i.exe" ;;
-                    esac
-                    taskkill $param -im "$i" || ret=1
-                done
-                return $ret
-            }
-        fi
         zstyle ':completion:*:*:*:*:commands' ignored-patterns '*.(exe|dll)'
         alias ls=ls\ --color=always -A
         alias gdb="gdb -q"
@@ -457,7 +439,8 @@ if which systemctl &>/dev/null; then
 fi
 if which service &>/dev/null; then
     alias sv=service
-    compdef sv=_service service=_service
+    compdef _service sv
+    compdef _service service
 fi
 
 if which git &>/dev/null; then
