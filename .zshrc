@@ -1,5 +1,8 @@
 if test -z "$_comp_dumpfile"; then
-    autoload -Uz compinit && compinit
+    # -C trusts the existing dump: it skips both the fpath security scan (84 ms
+    # here, most of shell startup) and the check for newly installed completion
+    # functions. After installing one, rm ~/.zcompdump and start a new shell.
+    autoload -Uz compinit && compinit -C
 fi
 autoload -Uz colors && colors
 zmodload zsh/stat &>/dev/null && alias stat='builtin stat -ostnr'
@@ -30,7 +33,10 @@ case "$TERM" in
             cmd="${cmd//\\n/?}"
             cmd="${cmd//\\r/?}"
             cmd="${cmd:gs/\\/\\\\}"
-            local str="$(print -Pn "${__prompt_hostname_cmd}%#")"
+            # two steps: inside ${...} a bare % is the suffix-removal operator, so
+            # ${(%%)"${x}%#"} silently eats the %#
+            local str="${__prompt_hostname_cmd}%#"
+            str="${(%%)str}"
             print -n "\e]0;$str $cmd\a";
         }
     ;;
@@ -53,7 +59,17 @@ setopt noextendedglob nonomatch nohup
 
 setopt no_chase_links
 
-eval $(dircolors -b 2>/dev/null)
+# dircolors was the only fork left at startup. Cache its output; it only changes
+# when ~/.dircolors does, or when coreutils is upgraded -- rm the cache for that.
+() {
+    local cache=~/.zsh-dircolors.cache
+    if whence -p dircolors >/dev/null; then
+        if [[ ! -s $cache || ( -e ~/.dircolors && ~/.dircolors -nt $cache ) ]]; then
+            dircolors -b > $cache 2>/dev/null
+        fi
+        source $cache 2>/dev/null
+    fi
+}
 LS_COLORS="$LS_COLORS:ow=0:"
 
 alias grep='grep --color'
@@ -302,9 +318,7 @@ GIT_PROMPT_MERGE="%{$fg_bold[default]%}STATE "
 
 # Show different symbols as appropriate for various Git repository states
 parse_git_state() {
-  local branch_pos=""
   local merge
-  local behind=0 ahead=0 line= xx
   local nc="$GIT_PROMPT_NOCOLOR"
   local pos=""
 
@@ -322,23 +336,19 @@ parse_git_state() {
     merge="${GIT_PROMPT_MERGE//STATE/$git_merge}$nc"
   fi
 
-  git rev-list --count --left-right @{u}... 2>/dev/null | read ahead behind xx
-  test -n "$ahead" || ahead=0
-  test -n "$behind" || behind=0
-
-#  git rev-list --left-right @{u}... 2>/dev/null | while read line; do
-#    case "$line" in
-#        \>*) (( ahead += 1 )) ;;
-#        \<*) (( behind += 1 )) ;;
-#    esac
-#  done
-
-  if [ $ahead -gt 0 ]; then
-    pos="${GIT_PROMPT_AHEAD//NUM/$ahead}"
+  # @{u} needs HEAD on a branch. Detached it can only fatal, so skip the fork
+  # rather than pay 29 ms for a guaranteed 0/0. Not keyed on merge/rebase/cherry:
+  # git am and git merge both keep HEAD attached, and there the count is real.
+  if test -n "$git_head_ref"; then
+    _gitp_ahead_behind "$dir" "$_gs[commondir]" "${git_head_ref#refs/heads/}" "$_gs[head]"
   fi
 
-  if [ $behind -gt 0 ]; then
-    pos="$pos${GIT_PROMPT_BEHIND//NUM/$behind}"
+  if [ $_gitp_ahead -gt 0 ]; then
+    pos="${GIT_PROMPT_AHEAD//NUM/$_gitp_ahead}"
+  fi
+
+  if [ $_gitp_behind -gt 0 ]; then
+    pos="$pos${GIT_PROMPT_BEHIND//NUM/$_gitp_behind}"
   fi
 
   if test -z "$pos"; then
@@ -351,33 +361,53 @@ parse_git_state() {
 }
 
 git_prompt_string() {
-  local dir=".git" i found=0
-  for i in {1..10}; do
-      if test -e "$dir"; then
-          found=1
-          break
-      fi
-      dir="../$dir"
-  done
+  # 1 = not a repo; 2 = repo, no rebase; 0 = rebase in progress
+  typeset -A _gs
+  git_rebase_state _gs
+  local rc=$?
+  test $rc -eq 1 && return 0
 
-  if test $found -eq 1; then
-    local nc="$GIT_PROMPT_NOCOLOR"
-    #for dir in "./.git" "../.git" "../../.git" "../../../.git" "../../../../.git"; do
-      local git_where=""
-      #test -f "$dir/index" -o -f "$dir/refs" || continue
+  local nc="$GIT_PROMPT_NOCOLOR"
+  # parse_git_state reads $dir; the old ".git" walk broke on submodules and
+  # linked worktrees, where .git is a file and "$dir/rebase-merge" never exists
+  local dir="$_gs[gitdir]"
+  local git_where="" git_head_ref="$_gs[head_ref]"
+  # declared here so the helpers' assignments land in this scope and leak nothing
+  local _gitp_ahead=0 _gitp_behind=0 _gitp_base="" _gitp_name=""
+  local _gitp_u_sha="" _gitp_r_sha=""
 
-      # Show Git branch/tag, or name-rev if on detached head
-      { git symbolic-ref -q HEAD || git name-rev --name-only --no-undefined --always HEAD; } 2>/dev/null | read git_where
-
-      test -n "$git_where" || continue
-
-      parse_git_state
-      git_where="%{$fg[cyan]%}${git_where#(refs/heads/|tags/)}$nc"
-
-      RPS1="$_RPROMPT_GIT_STATE$nc$GIT_PROMPT_PREFIX$git_where$GIT_PROMPT_SUFFIX$nc"
-      #break
-    #done
+  # Show Git branch/tag, or name-rev if on detached head
+  if test -n "$git_head_ref"; then
+    git_where="${git_head_ref#refs/heads/}"
+  elif test -n "$_gs[branch]"; then
+    # detached mid-rebase: head-name names the branch being replayed. name-rev
+    # would only echo the short HEAD that the triple below already prints.
+    git_where="$_gs[branch]"
+  else
+    _gitp_name_rev "$dir" "$_gs[head]"
+    git_where="${_gitp_name:-${_gs[head][1,8]}}"
+    git_where="${git_where#(refs/heads/|tags/)}"
   fi
+
+  local git_rebase_triple=""
+  # plain git am records no commit being applied, so there is no triple to draw --
+  # only the REBASE indicator from parse_git_state
+  if test $rc -eq 0 -a -n "$_gs[applying]"; then
+    # merge-base is the only value here not recoverable from the state files;
+    # it needs object traversal, so this one has to fork -- memoised on its pair
+    _gitp_merge_base "$dir" "$_gs[head]" "$_gs[applying]"
+    test -n "$_gitp_base" || _gitp_base="$_gs[onto]"
+    # U+00B7, not ".." / U+2025 / U+2026: mintty passes the wchar to
+    # strchr(), so only its low byte counts, and 0x25/0x26/0x24 alias onto
+    # word chars, gluing the three hashes into one double-click selection
+    git_rebase_triple="${_gitp_base[1,8]}·${_gs[head][1,8]}·${_gs[applying][1,8]} "
+  fi
+
+  parse_git_state
+
+  local inner="%{$fg[cyan]%}${git_rebase_triple}${git_where}$nc"
+
+  RPS1="$_RPROMPT_GIT_STATE$nc$GIT_PROMPT_PREFIX$inner$GIT_PROMPT_SUFFIX$nc"
   unset _RPROMPT_GIT_STATE
 }
 
@@ -479,5 +509,342 @@ fi
 if which rg &>/dev/null; then
     compdef rg=_rg
 fi
+
+zmodload -i zsh/mapfile
+
+# Memo tables for the three prompt values that cannot be computed without git.
+# Loose objects are zlib-deflated and zsh has no inflate module, so ahead/behind,
+# merge-base and name-rev must fork. They are pure functions of their input SHAs
+# over an append-only object database, so keying on those SHAs is exact rather
+# than merely fresh-ish; one entry per gitdir keeps the tables bounded.
+typeset -gA _gitp_ab _gitp_mb _gitp_nr
+
+# Ref name -> SHA: loose file, per-worktree then common, then packed-refs.
+# Sets _gitp_r_sha; returns 1 when the ref does not exist.
+_gitp_resolve_ref() {
+    emulate -L zsh
+    local gd=$1 cd=$2 rn=$3 ln
+    _gitp_r_sha=${${mapfile[$gd/$rn]%%$'\n'*}%$'\r'}
+    [[ -n $_gitp_r_sha ]] || _gitp_r_sha=${${mapfile[$cd/$rn]%%$'\n'*}%$'\r'}
+    if [[ -z $_gitp_r_sha ]]; then
+        for ln in ${(f)mapfile[$cd/packed-refs]}; do
+            ln=${ln%$'\r'}
+            case $ln in '#'* | '^'*) continue ;; esac
+            if [[ ${ln#* } == "$rn" ]]; then
+                _gitp_r_sha=${ln%% *}
+                break
+            fi
+        done
+    fi
+    [[ -n $_gitp_r_sha ]]
+}
+
+# Reads the git config at $1 into the assoc array named $2, keyed "section.sub.key".
+# This is a small INI reader, not git's: it returns 1 the moment it meets anything
+# whose exact meaning it cannot reproduce, so a caller can fall back to forking.
+_gitp_read_config() {
+    emulate -L zsh
+    setopt extended_glob
+    local line sec= key val
+    local -A _gitp_o
+
+    [[ -e $1 ]] || return 1
+    for line in ${(f)mapfile[$1]}; do
+        line=${${${line%$'\r'}##[[:space:]]#}%%[[:space:]]#}
+        [[ -z $line || $line == ('#'|';')* ]] && continue
+        # a trailing backslash continues the value onto the next line
+        [[ $line == *\\ ]] && return 1
+        case $line in
+            \[*\])
+                line=${${${line#\[}%\]}%%[[:space:]]#}
+                case $line in
+                    *\\*)                       return 1 ;;
+                    [[:alnum:].-]##[[:space:]]##\"*\")
+                        sec="${${line%%[[:space:]]*}:l}.${${line#*\"}%\"*}" ;;
+                    [[:alnum:].-]##)            sec="${line:l}" ;;
+                    *)                          return 1 ;;
+                esac
+                # include/includeIf pull in other files with their own precedence
+                [[ $sec == include* ]] && return 1
+                ;;
+            *)
+                [[ -n $sec ]] || return 1
+                if [[ $line == *=* ]]; then
+                    key=${${line%%=*}%%[[:space:]]#}
+                    val=${${line#*=}##[[:space:]]#}
+                else
+                    key=$line val=true
+                fi
+                if [[ $val == *[\\\"]* ]]; then
+                    # quoting and escapes need git's own unquoting rules, so poison
+                    # the value: only a caller that reads this key has to give up
+                    val=$'\x01'
+                else
+                    # an unquoted # or ; starts a comment
+                    val=${${val%%[\#\;]*}%%[[:space:]]#}
+                fi
+                [[ $key == [[:alnum:]-]## ]] || return 1
+                # keys are multi-valued (remote.*.fetch routinely repeats), so keep
+                # every one newline-joined; single-valued readers take the last
+                key=${sec}.${key:l}
+                if [[ -n ${_gitp_o[$key]} ]]; then
+                    _gitp_o[$key]=${_gitp_o[$key]}$'\n'$val
+                else
+                    _gitp_o[$key]=$val
+                fi
+                ;;
+        esac
+    done
+    set -A $2 "${(@kv)_gitp_o}"
+}
+
+# Upstream SHA of branch $3, without forking. Sets _gitp_u_sha.
+# 0 with a SHA = upstream found; 0 with "" = branch genuinely has no upstream,
+# so ahead/behind are 0/0 forever; 1 = cannot tell, the caller must ask git.
+_gitp_upstream_sha() {
+    emulate -L zsh
+    local gd=$1 cd=$2 br=$3 remote merge ref spec found=
+    local -A cfg
+
+    _gitp_u_sha=
+    [[ -e $gd/config.worktree || -e $cd/config.worktree ]] && return 1
+    _gitp_read_config $cd/config cfg || return 1
+
+    remote=${cfg[branch.$br.remote]##*$'\n'}
+    merge=${cfg[branch.$br.merge]##*$'\n'}
+    [[ -n $remote && -n $merge ]] || return 0
+    [[ $remote$merge == *$'\x01'* ]] && return 1
+
+    if [[ $remote == . ]]; then
+        ref=$merge
+    else
+        # only the default refspec puts the branch at refs/remotes/<remote>/<name>;
+        # a repo may carry extra ones (refs/pull/* is common) alongside it
+        for spec in ${(f)cfg[remote.$remote.fetch]}; do
+            if [[ $spec == "+refs/heads/*:refs/remotes/$remote/*" ||
+                  $spec == "refs/heads/*:refs/remotes/$remote/*" ]]; then
+                found=1
+                break
+            fi
+        done
+        [[ -n $found ]] || return 1
+        ref=refs/remotes/$remote/${merge#refs/heads/}
+    fi
+    _gitp_resolve_ref $gd $cd $ref || return 1
+    _gitp_u_sha=$_gitp_r_sha
+}
+
+# Sets _gitp_ahead / _gitp_behind for branch $3 at SHA $4.
+_gitp_ahead_behind() {
+    emulate -L zsh
+    local gd=$1 cd=$2 br=$3 lsha=$4 usha rc ahead behind xx
+    local -a f
+
+    _gitp_ahead=0 _gitp_behind=0
+
+    _gitp_upstream_sha $gd $cd $br
+    rc=$?
+    usha=$_gitp_u_sha
+    (( rc == 0 )) && [[ -z $usha ]] && return 0
+
+    if (( rc == 0 )); then
+        f=(${=_gitp_ab[$gd]})
+        if [[ $f[1] == $lsha && $f[2] == $usha ]]; then
+            _gitp_ahead=$f[3] _gitp_behind=$f[4]
+            return 0
+        fi
+    fi
+
+    git rev-list --count --left-right '@{u}...' 2>/dev/null | read behind ahead xx
+    [[ -n $behind ]] || behind=0
+    [[ -n $ahead ]] || ahead=0
+    _gitp_ahead=$ahead _gitp_behind=$behind
+    (( rc == 0 )) && _gitp_ab[$gd]="$lsha $usha $ahead $behind"
+    return 0
+}
+
+# Sets _gitp_base to merge-base(HEAD=$2, REBASE_HEAD=$3), empty if git can't say.
+_gitp_merge_base() {
+    emulate -L zsh
+    local gd=$1 head=$2 rh=$3
+    local -a f
+
+    f=(${=_gitp_mb[$gd]})
+    if [[ $f[1] == $head && $f[2] == $rh ]]; then
+        _gitp_base=$f[3]
+        return 0
+    fi
+    _gitp_base=
+    git merge-base HEAD REBASE_HEAD 2>/dev/null | read _gitp_base
+    [[ -n $_gitp_base ]] && _gitp_mb[$gd]="$head $rh $_gitp_base"
+    return 0
+}
+
+# Sets _gitp_name to a readable name for the detached HEAD at $2.
+_gitp_name_rev() {
+    emulate -L zsh
+    local gd=$1 head=$2
+    local -a f
+
+    f=(${=_gitp_nr[$gd]})
+    if [[ $f[1] == $head ]]; then
+        _gitp_name=$f[2]
+        return 0
+    fi
+    _gitp_name=
+    git name-rev --name-only --no-undefined --always HEAD 2>/dev/null | read _gitp_name
+    [[ -n $_gitp_name ]] && _gitp_nr[$gd]="$head $_gitp_name"
+    return 0
+}
+
+# Fills the associative array named by $1 (default: git_rebase_state).
+# 0 = rebase/am in progress, 2 = repo but no rebase (gitdir/commondir/head still
+# set), 1 = not a repo.
+git_rebase_state() {
+    emulate -L zsh
+    setopt extended_glob
+
+    local -A st
+    local dir=$PWD prev line p d gitdir= commondir= rdir= kind=
+
+    # emptied up front so a caller that ignores the return value never sees
+    # values left over from the last directory that was mid-rebase
+    local name=${1:-git_rebase_state}
+    typeset -gA $name
+    set -A $name
+
+    if [[ -n $GIT_DIR ]]; then
+        gitdir=$GIT_DIR
+    else
+        while true; do
+            # at the filesystem root $dir is "/", and "//name" is a UNC path on
+            # Windows: stat blocks ~1.1 s resolving "name" as a host, once per
+            # prompt in every directory that is not inside a repository
+            d=${dir%/}
+            if [[ -d $d/.git ]]; then
+                gitdir=$d/.git
+                break
+            elif [[ -f $d/.git ]]; then
+                line=${${mapfile[$d/.git]%%$'\n'*}%$'\r'}
+                [[ $line == gitdir:* ]] || return 1
+                p=${${line#gitdir:}##[[:space:]]#}
+                # a relative gitdir: is anchored at the .git file, not at $PWD
+                case $p in
+                    /* | [A-Za-z]:[/\\]*) gitdir=$p ;;
+                    *)                    gitdir=$d/$p ;;
+                esac
+                break
+            elif [[ -d $d/objects && -e $d/HEAD ]]; then
+                gitdir=$dir
+                break
+            fi
+            prev=$dir
+            dir=${dir:h}
+            [[ $dir == "$prev" ]] && return 1
+        done
+    fi
+
+    # :a prepends $PWD to anything not starting with /, so a git-for-windows
+    # drive-letter path has to have the prefix split off before normalising
+    case $gitdir in
+        [A-Za-z]:/*) gitdir=${gitdir[1,2]}${${gitdir[3,-1]}:a} ;;
+        [A-Za-z]:*)  ;;
+        *)           gitdir=${gitdir:a} ;;
+    esac
+
+    if [[ -n $GIT_COMMON_DIR ]]; then
+        commondir=$GIT_COMMON_DIR
+    elif [[ -e $gitdir/commondir ]]; then
+        p=${${mapfile[$gitdir/commondir]%%$'\n'*}%$'\r'}
+        case $p in
+            /* | [A-Za-z]:[/\\]*) commondir=$p ;;
+            *)                    commondir=$gitdir/$p ;;
+        esac
+    else
+        commondir=$gitdir
+    fi
+    case $commondir in
+        [A-Za-z]:/*) commondir=${commondir[1,2]}${${commondir[3,-1]}:a} ;;
+        [A-Za-z]:*)  ;;
+        *)           commondir=${commondir:a} ;;
+    esac
+
+    st[gitdir]=$gitdir
+    st[commondir]=$commondir
+
+    local head=${${mapfile[$gitdir/HEAD]%%$'\n'*}%$'\r'} rn rv ln
+    local -i depth=0
+    while [[ $head == ref:* ]]; do
+        if (( ++depth > 8 )); then
+            head=
+            break
+        fi
+        rn=${${head#ref:}##[[:space:]]#}
+        st[head_ref]=$rn
+        # per-worktree refs live in gitdir; refs/heads and packed-refs in commondir
+        rv=${${mapfile[$gitdir/$rn]%%$'\n'*}%$'\r'}
+        [[ -n $rv ]] || rv=${${mapfile[$commondir/$rn]%%$'\n'*}%$'\r'}
+        if [[ -z $rv ]]; then
+            for ln in ${(f)mapfile[$commondir/packed-refs]}; do
+                ln=${ln%$'\r'}
+                case $ln in '#'* | '^'*) continue ;; esac
+                if [[ ${ln#* } == "$rn" ]]; then
+                    rv=${ln%% *}
+                    break
+                fi
+            done
+        fi
+        head=$rv
+        [[ -n $head ]] || break
+    done
+    st[head]=$head
+
+    if [[ -d $gitdir/rebase-merge ]]; then
+        rdir=$gitdir/rebase-merge
+        if [[ -e $rdir/interactive ]]; then
+            kind=rebase-i
+        else
+            kind=rebase-merge
+        fi
+    elif [[ -d $gitdir/rebase-apply ]]; then
+        rdir=$gitdir/rebase-apply
+        if [[ -e $rdir/rebasing ]]; then
+            kind=rebase-apply
+        elif [[ -e $rdir/applying ]]; then
+            kind=am
+        else
+            kind=am-or-rebase
+        fi
+    else
+        set -A $name "${(@kv)st}"
+        return 2
+    fi
+
+    st[state_dir]=$rdir
+    st[kind]=$kind
+
+    st[head_name]=${${mapfile[$rdir/head-name]%%$'\n'*}%$'\r'}
+    st[branch]=${st[head_name]#refs/heads/}
+    st[onto]=${${mapfile[$rdir/onto]%%$'\n'*}%$'\r'}
+    st[orig_head]=${${mapfile[$rdir/orig-head]%%$'\n'*}%$'\r'}
+    # pre-2.6 interactive rebase called it "head"
+    [[ -n $st[orig_head] ]] || st[orig_head]=${${mapfile[$rdir/head]%%$'\n'*}%$'\r'}
+
+    if [[ $kind == rebase-(i|merge) ]]; then
+        st[step]=${${mapfile[$rdir/msgnum]%%$'\n'*}%$'\r'}
+        st[total]=${${mapfile[$rdir/end]%%$'\n'*}%$'\r'}
+    else
+        st[step]=${${mapfile[$rdir/next]%%$'\n'*}%$'\r'}
+        st[total]=${${mapfile[$rdir/last]%%$'\n'*}%$'\r'}
+    fi
+
+    # abbreviated in git < 2.29, full-length since; REBASE_HEAD is a ref, so it is a
+    # loose file only under the "files" backend
+    st[applying]=${${mapfile[$rdir/stopped-sha]%%$'\n'*}%$'\r'}
+    [[ -n $st[applying] ]] || st[applying]=${${mapfile[$rdir/original-commit]%%$'\n'*}%$'\r'}
+    [[ -n $st[applying] ]] || st[applying]=${${mapfile[$gitdir/REBASE_HEAD]%%$'\n'*}%$'\r'}
+
+    set -A $name "${(@kv)st}"
+}
 
 # vim: et shiftwidth=4 softtabstop=4 tabstop=8 shortmess=atI
