@@ -519,14 +519,24 @@ zmodload -i zsh/mapfile
 # than merely fresh-ish; one entry per gitdir keeps the tables bounded.
 typeset -gA _gitp_ab _gitp_mb _gitp_nr
 
+# First line of $1 into $REPLY, minus the trailing CR. Returns 1 if there was
+# nothing to read. Most callers probe paths that are legitimately absent, and
+# $mapfile[$f] on a missing $f is a fatal expansion error, not an empty string.
+_gitp_first_line() {
+    REPLY=
+    [[ -f $1 ]] || return 1
+    REPLY=${${mapfile[$1]%%$'\n'*}%$'\r'}
+    [[ -n $REPLY ]]
+}
+
 # Ref name -> SHA: loose file, per-worktree then common, then packed-refs.
 # Sets _gitp_r_sha; returns 1 when the ref does not exist.
 _gitp_resolve_ref() {
     emulate -L zsh
     local gd=$1 cd=$2 rn=$3 ln
-    _gitp_r_sha=${${mapfile[$gd/$rn]%%$'\n'*}%$'\r'}
-    [[ -n $_gitp_r_sha ]] || _gitp_r_sha=${${mapfile[$cd/$rn]%%$'\n'*}%$'\r'}
-    if [[ -z $_gitp_r_sha ]]; then
+    _gitp_first_line $gd/$rn || _gitp_first_line $cd/$rn
+    _gitp_r_sha=$REPLY
+    if [[ -z $_gitp_r_sha && -f $cd/packed-refs ]]; then
         for ln in ${(f)mapfile[$cd/packed-refs]}; do
             ln=${ln%$'\r'}
             case $ln in '#'* | '^'*) continue ;; esac
@@ -772,7 +782,8 @@ git_rebase_state() {
     st[gitdir]=$gitdir
     st[commondir]=$commondir
 
-    local head=${${mapfile[$gitdir/HEAD]%%$'\n'*}%$'\r'} rn rv ln
+    local head= rn rv ln
+    _gitp_first_line $gitdir/HEAD && head=$REPLY
     local -i depth=0
     while [[ $head == ref:* ]]; do
         if (( ++depth > 8 )); then
@@ -782,9 +793,9 @@ git_rebase_state() {
         rn=${${head#ref:}##[[:space:]]#}
         st[head_ref]=$rn
         # per-worktree refs live in gitdir; refs/heads and packed-refs in commondir
-        rv=${${mapfile[$gitdir/$rn]%%$'\n'*}%$'\r'}
-        [[ -n $rv ]] || rv=${${mapfile[$commondir/$rn]%%$'\n'*}%$'\r'}
-        if [[ -z $rv ]]; then
+        _gitp_first_line $gitdir/$rn || _gitp_first_line $commondir/$rn
+        rv=$REPLY
+        if [[ -z $rv && -f $commondir/packed-refs ]]; then
             for ln in ${(f)mapfile[$commondir/packed-refs]}; do
                 ln=${ln%$'\r'}
                 case $ln in '#'* | '^'*) continue ;; esac
@@ -823,26 +834,26 @@ git_rebase_state() {
     st[state_dir]=$rdir
     st[kind]=$kind
 
-    st[head_name]=${${mapfile[$rdir/head-name]%%$'\n'*}%$'\r'}
+    _gitp_first_line $rdir/head-name; st[head_name]=$REPLY
     st[branch]=${st[head_name]#refs/heads/}
-    st[onto]=${${mapfile[$rdir/onto]%%$'\n'*}%$'\r'}
-    st[orig_head]=${${mapfile[$rdir/orig-head]%%$'\n'*}%$'\r'}
+    _gitp_first_line $rdir/onto;      st[onto]=$REPLY
     # pre-2.6 interactive rebase called it "head"
-    [[ -n $st[orig_head] ]] || st[orig_head]=${${mapfile[$rdir/head]%%$'\n'*}%$'\r'}
+    _gitp_first_line $rdir/orig-head || _gitp_first_line $rdir/head
+    st[orig_head]=$REPLY
 
     if [[ $kind == rebase-(i|merge) ]]; then
-        st[step]=${${mapfile[$rdir/msgnum]%%$'\n'*}%$'\r'}
-        st[total]=${${mapfile[$rdir/end]%%$'\n'*}%$'\r'}
+        _gitp_first_line $rdir/msgnum; st[step]=$REPLY
+        _gitp_first_line $rdir/end;    st[total]=$REPLY
     else
-        st[step]=${${mapfile[$rdir/next]%%$'\n'*}%$'\r'}
-        st[total]=${${mapfile[$rdir/last]%%$'\n'*}%$'\r'}
+        _gitp_first_line $rdir/next;   st[step]=$REPLY
+        _gitp_first_line $rdir/last;   st[total]=$REPLY
     fi
 
     # abbreviated in git < 2.29, full-length since; REBASE_HEAD is a ref, so it is a
     # loose file only under the "files" backend
-    st[applying]=${${mapfile[$rdir/stopped-sha]%%$'\n'*}%$'\r'}
-    [[ -n $st[applying] ]] || st[applying]=${${mapfile[$rdir/original-commit]%%$'\n'*}%$'\r'}
-    [[ -n $st[applying] ]] || st[applying]=${${mapfile[$gitdir/REBASE_HEAD]%%$'\n'*}%$'\r'}
+    _gitp_first_line $rdir/stopped-sha || _gitp_first_line $rdir/original-commit ||
+        _gitp_first_line $gitdir/REBASE_HEAD
+    st[applying]=$REPLY
 
     set -A $name "${(@kv)st}"
 }
